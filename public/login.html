@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Login | MedTrace AMR</title>
+<link rel="stylesheet" href="style.css"><link rel="icon" type="image/png" href="./MedTrace.png">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><img src="MedTrace.png" alt="MedTrace">MEDTRACE <span>AMR</span></a>
+  <a href="index.html" style="color:#c6d8e4;font-weight:700">← Home</a>
+</header>
+<main class="login-wrap">
+<section class="login-card">
+  <div class="login-brand"><img src="MedTrace.png" alt="MedTrace logo"><h1 style="margin:12px 0 4px">Welcome to MedTrace</h1><p class="muted" style="margin:0">Sign in to the hospital, CBWTF or admin workspace.</p></div>
+  <div class="role">
+    <button type="button" class="active" data-role="hospital">Hospital</button>
+    <button type="button" data-role="cbtwf">CBWTF</button>
+    <button type="button" data-role="admin">Admin</button>
+  </div>
+
+  <div id="registerFields">
+    <label class="label">Name</label><input id="name" class="input" placeholder="Your name">
+    <label class="label" style="margin-top:12px">Facility name</label><input id="facility" class="input" placeholder="Hospital / CBWTF name">
+    <label class="label" style="margin-top:12px">Phone</label><input id="phone" class="input" placeholder="Optional">
+  </div>
+
+  <label class="label" style="margin-top:12px">Email</label><input id="email" class="input" type="email" placeholder="you@example.com">
+  <label class="label" style="margin-top:12px">Password</label><input id="password" class="input" type="password" placeholder="Minimum 6 characters">
+
+  <div class="action-row">
+    <button type="button" id="register" class="btn secondary">Create account</button>
+    <button type="button" id="login" class="btn primary">Login</button>
+  </div>
+  <p id="msg" class="muted small" style="min-height:20px"></p>
+  <div class="card" style="margin-top:15px;background:#f8fbfc;box-shadow:none">
+    <b>Demo flow</b>
+    <p class="small muted" style="margin-bottom:0">Create a Hospital account → register a bag → verify → request pickup → use a CBWTF account to move the bag through collection, transit, receipt and treatment.</p>
+  </div>
+</section>
+</main>
+<script>
+let role='hospital';
+const $=id=>document.getElementById(id);
+document.querySelectorAll('[data-role]').forEach(button=>{
+  button.onclick=()=>{
+    role=button.dataset.role;
+    document.querySelectorAll('[data-role]').forEach(x=>x.classList.remove('active'));
+    button.classList.add('active');
+    $('registerFields').style.display=role==='admin'?'none':'block';
+    $('msg').textContent='';
+  };
+});
+async function api(path,opts={}){
+  const r=await fetch(path,{...opts,headers:{'Content-Type':'application/json',...(opts.headers||{})}});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw Error(d.message||'Request failed');
+  return d;
+}
+$('register').onclick=async()=>{
+  try{
+    const data=await api('/api/register',{method:'POST',body:JSON.stringify({
+      name:$('name').value.trim(),email:$('email').value.trim(),password:$('password').value,
+      role,facilityName:$('facility').value.trim(),phone:$('phone').value.trim()
+    })});
+    localStorage.setItem('medtraceToken',data.token);
+    localStorage.setItem('medtraceUser',JSON.stringify(data.user));
+    go(data.user.role);
+  }catch(e){$('msg').textContent=e.message}
+};
+$('login').onclick=async()=>{
+  try{
+    const data=await api('/api/login',{method:'POST',body:JSON.stringify({email:$('email').value.trim(),password:$('password').value,role})});
+    localStorage.setItem('medtraceToken',data.token);
+    localStorage.setItem('medtraceUser',JSON.stringify(data.user));
+    go(data.user.role);
+  }catch(e){$('msg').textContent=e.message}
+};
+function go(r){location.href=r==='hospital'?'hospital.html':r==='cbtwf'?'cbtwf.html':r==='admin'?'admin.html':'login.html'}
+</script>
+</body></html>
